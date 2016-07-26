@@ -165,7 +165,7 @@ g <- ggplot(head(as.data.frame(StormSummary2),n=8), aes(EVTYPE, Fatalities))
 g+geom_bar(stat='identity')+labs(title="Top weather events for number of fatalities", x="Event",y="Fatalities")
 ```
 
-![](Course_Project_2_files/figure-html/question1A-1.png)<!-- -->
+![](Course_Project_2_files/figure-html/question1A-1.png)
 
 <br>
 
@@ -222,7 +222,7 @@ g2 <- ggplot(head(as.data.frame(StormSummary2),n=8), aes(EVTYPE, Injuries))
 g2+geom_bar(stat='identity')+labs(title="Top weather events for number of injuries", x="Event",y="Injuries")
 ```
 
-![](Course_Project_2_files/figure-html/question1B-1.png)<!-- -->
+![](Course_Project_2_files/figure-html/question1B-1.png)
 
 Based on the data, TORNADO caused the maximum number of fatalities and injuries, and for this reason it's the most harmful with respect to population health.
 
@@ -279,6 +279,6 @@ h <- ggplot(head(as.data.frame(StormSummary3),n=8), aes(EVTYPE, TotalDamages/100
 h+geom_bar(stat='identity')+labs(title="Top weather events for damages (billions of dollars)", x="Event",y="Total Damages (billions of dollars)")
 ```
 
-![](Course_Project_2_files/figure-html/question2-1.png)<!-- -->
+![](Course_Project_2_files/figure-html/question2-1.png)
 
 Based on the data, FLOOD have the greatest economic consequences.
