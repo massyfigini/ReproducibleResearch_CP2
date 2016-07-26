@@ -1,4 +1,4 @@
-# ReproducibleResearch_CP2
+# Reproducible Research Course Project 2
 Course Project 2 of the Reproducible Research course
 
 ### Text of the assignment
