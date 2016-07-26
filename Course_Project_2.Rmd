@@ -1,0 +1,155 @@
+---
+title: 'Impact of weather events on public health and economy in the United States'
+author: "Massimiliano Figini"
+date: "06 luglio 2016"
+output: html_document
+---
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.  
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.  
+The events in the database start in the year 1950 and end in November 2011.  
+The analysis in this document try to respond with tables and graphs at two questions:  
+1. Across the United States, which types of events are most harmful with respect to population health?  
+2. Across the United States, which types of events have the greatest economic consequences?  
+
+```{r dir, include=FALSE}
+setwd("C:\\Users\\figinim\\Documents\\Studies\\Courses\\DS5 Reproducible Research\\Course_Project_2")
+```
+
+<br>
+
+###1. Data Processing  
+
+The data for the assignment can be downloaded [here](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2).  
+
+**1.1 Settings**  
+Load data and required libraries.  
+```{r read, message=FALSE, warning=FALSE}
+storm <- read.csv("repdata%2Fdata%2FStormData.csv")
+library(dplyr)
+stormDP <- tbl_df(storm)
+library(ggplot2)
+library(xtable)
+```
+
+<br>
+
+**1.2 Table summary for find the most harmful events with respect to population health.**  
+Injuries and fatalities are the variables considerated for this part of the analysis. Tables with summaries are created with this new variables for each event: Num (total number), Fatalities, Injuries, FatalitiesAVG (average number of fatalities), InjuriesAVG, PercWithFatalities (percentage of events with at least one dead) PercWithInjuries (percentage of events with at least one injury).
+```{r summarize, echo = TRUE}
+# table with total injuries and fatalities for event
+StormSummary <- stormDP %>% group_by(EVTYPE) %>% summarize(Num=n(),Fatalities=sum(FATALITIES),Fatalities_AVG=round(mean(FATALITIES),2),Injuries=sum(INJURIES),Injuries_AVG=round(mean(INJURIES),2))
+# tables with events with at least one injury / death
+WithInjuriesTB <- stormDP %>% filter(INJURIES>0) %>% group_by(EVTYPE) %>% summarize(WithInjuries=n())
+WithDeadsTB <- stormDP %>% filter(FATALITIES>0) %>% group_by(EVTYPE) %>% summarize(WithDeads=n())
+# join with summary table
+StormSummary <- left_join(StormSummary,WithInjuriesTB, by="EVTYPE")
+StormSummary <- left_join(StormSummary,WithDeadsTB, by="EVTYPE")
+# percentage with at least one injury / fatality
+StormSummary <- mutate(StormSummary, Perc_with_Injuries=round(WithInjuries/Num*100,2))
+StormSummary <- mutate(StormSummary, Perc_with_Fatalities=round(WithDeads/Num*100,2))
+# final summary table for the analysis
+StormSummary2 <- StormSummary %>% select(EVTYPE,Num,Fatalities,Fatalities_AVG,Perc_with_Fatalities,Injuries,Injuries_AVG,Perc_with_Injuries) %>% arrange(desc(Num))
+```
+
+<br>
+
+**1.3 Table summary for find the events that have the greatest economic consequences.**  
+Property and crop damage exponents for each level is listed out and assigned those values for the property exponent data. Invalid data was excluded. Property damage value was calculated by multiplying the property damage and property exponent value. Total damages are the final variable that sum property and crop damages.
+```{r summarize2, echo = TRUE}
+# values of PROPDMGEXP
+unique(stormDP$PROPDMGEXP)
+# traduction of PROPDMGEXP
+stormDP$PropExpN <- 0
+stormDP$PropExpN[stormDP$PROPDMGEXP == ""] <- 1
+stormDP$PropExpN[stormDP$PROPDMGEXP == "-"] <- 0
+stormDP$PropExpN[stormDP$PROPDMGEXP == "?"] <- 0
+stormDP$PropExpN[stormDP$PROPDMGEXP == "+"] <- 0
+stormDP$PropExpN[stormDP$PROPDMGEXP == "0"] <- 1
+stormDP$PropExpN[stormDP$PROPDMGEXP == "1"] <- 10
+stormDP$PropExpN[stormDP$PROPDMGEXP == "2"] <- 100
+stormDP$PropExpN[stormDP$PROPDMGEXP == "3"] <- 1000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "4"] <- 10000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "5"] <- 100000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "6"] <- 1000000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "7"] <- 10000000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "8"] <- 100000000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "B"] <- 1000000000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "h"] <- 100
+stormDP$PropExpN[stormDP$PROPDMGEXP == "H"] <- 100
+stormDP$PropExpN[stormDP$PROPDMGEXP == "K"] <- 1000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "m"] <- 1000000
+stormDP$PropExpN[stormDP$PROPDMGEXP == "M"] <- 1000000
+# Final value for property damages
+stormDP$PropDMGN <- stormDP$PROPDMG*stormDP$PropExpN
+# values of CROPDMGEXP
+unique(stormDP$CROPDMGEXP)
+# traduction of CROPDMGEXP
+stormDP$CropExpN <- 0
+stormDP$CropExpN[stormDP$CROPDMGEXP == ""] <- 1
+stormDP$CropExpN[stormDP$CROPDMGEXP == "?"] <- 0
+stormDP$CropExpN[stormDP$CROPDMGEXP == "0"] <- 1
+stormDP$CropExpN[stormDP$CROPDMGEXP == "2"] <- 100
+stormDP$CropExpN[stormDP$CROPDMGEXP == "B"] <- 1000000000
+stormDP$CropExpN[stormDP$CROPDMGEXP == "k"] <- 1000
+stormDP$CropExpN[stormDP$CROPDMGEXP == "K"] <- 1000
+stormDP$CropExpN[stormDP$CROPDMGEXP == "m"] <- 1000000
+stormDP$CropExpN[stormDP$CROPDMGEXP == "M"] <- 1000000
+# Final value for crop damages
+stormDP$CropDMGN <- stormDP$CROPDMG*stormDP$CropExpN
+# summary table for this analysis
+StormSummary3 <- stormDP %>% group_by(EVTYPE) %>% summarize(PropDam=round(sum(PropDMGN),2),PropDam_AVG=round(mean(PropDMGN),2),CropDam=sum(CropDMGN),CropDam_AVG=round(mean(CropDMGN),2), TotalDamages = round(sum(PropDMGN)+sum(CropDMGN),2), TotalDamages_AVG = round(mean(sum(PropDMGN)+sum(CropDMGN)),2)) %>% arrange(desc(TotalDamages))
+```
+
+<br>
+<br>
+
+###2. Results  
+
+**2.1 The most harmful events with respect to population health.**  
+The table and the graph below show the events with the large number of fatalities.
+```{r question1A, echo = TRUE, results='asis',fig.width=10}
+# top 20 for fatalities
+print(xtable(as.data.frame(StormSummary2 %>% arrange(desc(Fatalities)))[1:20, ], auto = TRUE, caption='Top 20 events for number of fatalities'),type='html')
+# modification for the graph label
+levels(StormSummary2$EVTYPE) <- gsub(" ", "\n",levels(StormSummary2$EVTYPE))
+# desc order for the first graph
+StormSummary2$EVTYPE <- factor(StormSummary2$EVTYPE, levels = StormSummary2$EVTYPE[order(StormSummary2$Fatalities, decreasing=TRUE)])
+# graph with fatalities per event
+g <- ggplot(head(as.data.frame(StormSummary2),n=8), aes(EVTYPE, Fatalities))
+g+geom_bar(stat='identity')+labs(title="Top weather events for number of fatalities", x="Event",y="Fatalities")
+```
+
+<br>
+
+The table and the graph below show the events with the large number of injuries.
+```{r question1B, echo = TRUE, results='asis',fig.width=10}
+# top 20 for injuries
+print(xtable(as.data.frame(StormSummary2 %>% arrange(desc(Injuries)))[1:20, ], auto = TRUE, caption='Top 20 events for number of injuries'),type='html')
+# desc order for the second graph
+StormSummary2$EVTYPE <- factor(StormSummary2$EVTYPE, levels = StormSummary2$EVTYPE[order(StormSummary2$Injuries, decreasing=TRUE)])
+# graph with injuries per event
+g2 <- ggplot(head(as.data.frame(StormSummary2),n=8), aes(EVTYPE, Injuries))
+g2+geom_bar(stat='identity')+labs(title="Top weather events for number of injuries", x="Event",y="Injuries")
+```
+
+Based on the data, TORNADO caused the maximum number of fatalities and injuries, and for this reason it's the most harmful with respect to population health.
+
+
+<br>
+
+**2.2 The events that have the greatest economic consequences.**  
+
+```{r question2, echo = TRUE, results='asis',fig.width=10}
+# top 20 for damages
+print(xtable(as.data.frame(StormSummary3)[1:20, ], digits=0, auto = TRUE, caption='Top 20 events for economic damages'),type='html')
+# modification for the graph label
+levels(StormSummary3$EVTYPE) <- gsub(" ", "\n",levels(StormSummary3$EVTYPE))
+# desc order for the graph
+StormSummary3$EVTYPE <- factor(StormSummary3$EVTYPE, levels = StormSummary3$EVTYPE[order(StormSummary3$TotalDamages, decreasing=TRUE)])
+# graph with damages per event
+h <- ggplot(head(as.data.frame(StormSummary3),n=8), aes(EVTYPE, TotalDamages/1000000000))
+h+geom_bar(stat='identity')+labs(title="Top weather events for damages (billions of dollars)", x="Event",y="Total Damages (billions of dollars)")
+```
+
+Based on the data, FLOOD have the greatest economic consequences.
